@@ -1,0 +1,8 @@
+.env
+.venv/
+.packages/
+__pycache__/
+.pytest_cache/
+*.pyc
+corestream.db
+corestream-test.db
