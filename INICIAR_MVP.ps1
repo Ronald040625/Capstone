@@ -8,7 +8,24 @@ Start-Process powershell -WindowStyle Normal -ArgumentList @(
     "-File", "`"$backendScript`""
 )
 
-Start-Sleep -Seconds 4
+$backendReady = $false
+for ($attempt = 0; $attempt -lt 90; $attempt++) {
+    try {
+        $response = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:8000/health" -TimeoutSec 2
+        if ($response.StatusCode -eq 200) {
+            $backendReady = $true
+            break
+        }
+    } catch {
+        # El backend sigue iniciando.
+    }
+    Start-Sleep -Seconds 2
+}
+
+if (-not $backendReady) {
+    throw "El backend no pudo iniciar. Revisa la otra ventana de PowerShell."
+}
+
 Set-Location (Join-Path $root "corestream_mobile")
 
 $flutterCommand = Get-Command flutter -ErrorAction SilentlyContinue
