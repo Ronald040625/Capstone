@@ -15,7 +15,7 @@ $flutterCommand = Get-Command flutter -ErrorAction SilentlyContinue
 if ($flutterCommand) {
     $flutter = $flutterCommand.Source
 } else {
-    $flutter = Get-ChildItem (Join-Path $env:USERPROFILE ".codex\chatgpt-projects\*\tools\flutter\bin\flutter.bat") -File -ErrorAction SilentlyContinue |
+    $flutter = Get-ChildItem (Join-Path $env:USERPROFILE ".codex\.chatgpt-projects\*\tools\flutter\bin\flutter.bat") -File -ErrorAction SilentlyContinue |
         Select-Object -First 1 -ExpandProperty FullName
 }
 if (-not $flutter) {
