@@ -2,12 +2,30 @@ $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $backendScript = Join-Path $root "backend\start.ps1"
 
+$flutterCommand = Get-Command flutter -ErrorAction SilentlyContinue
+if ($flutterCommand) {
+    $flutter = $flutterCommand.Source
+} else {
+    $userFlutter = Join-Path $env:USERPROFILE "flutter\bin\flutter.bat"
+    if (Test-Path $userFlutter) {
+        $flutter = $userFlutter
+    } else {
+        $flutter = Get-ChildItem (Join-Path $env:USERPROFILE ".codex\.chatgpt-projects\*\tools\flutter\bin\flutter.bat") -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
+}
+
+if (-not $flutter) {
+    throw "No se encontro Flutter. Instalalo y vuelve a ejecutar este archivo."
+}
+
 Start-Process powershell -WindowStyle Normal -ArgumentList @(
     "-NoExit",
     "-ExecutionPolicy", "Bypass",
     "-File", "`"$backendScript`""
 )
 
+Write-Host "Esperando al backend..."
 $backendReady = $false
 for ($attempt = 0; $attempt -lt 90; $attempt++) {
     try {
@@ -27,17 +45,9 @@ if (-not $backendReady) {
 }
 
 Set-Location (Join-Path $root "corestream_mobile")
-
-$flutterCommand = Get-Command flutter -ErrorAction SilentlyContinue
-if ($flutterCommand) {
-    $flutter = $flutterCommand.Source
-} else {
-    $flutter = Get-ChildItem (Join-Path $env:USERPROFILE ".codex\.chatgpt-projects\*\tools\flutter\bin\flutter.bat") -File -ErrorAction SilentlyContinue |
-        Select-Object -First 1 -ExpandProperty FullName
-}
-if (-not $flutter) {
-    throw "No se encontró Flutter. Instálalo, agrégalo al PATH y vuelve a ejecutar este archivo."
-}
-
 & $flutter pub get
+if ($LASTEXITCODE -ne 0) {
+    throw "No se pudieron instalar las dependencias de Flutter."
+}
+
 & $flutter run -d edge --dart-define=CS_API_URL=http://localhost:8000
