@@ -4,7 +4,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -33,6 +33,7 @@ from .security import (
     read_access_claims,
     verify_password,
 )
+from .reports import build_excel_report, build_pdf_report
 from .seed import seed_database
 
 
@@ -188,6 +189,88 @@ def _require_lead(user: User) -> None:
 async def _users_by_id(db: AsyncSession) -> dict[str, User]:
     users = (await db.scalars(select(User))).all()
     return {user.id: user for user in users}
+
+
+async def _project_report_data(db: AsyncSession, project_id: str | None) -> tuple[str, list[list[object]]]:
+    query = select(Project).options(selectinload(Project.epics).selectinload(Epic.tickets))
+    if project_id:
+        query = query.where(Project.id == project_id)
+    projects = (await db.scalars(query.order_by(Project.name))).all()
+    if project_id and not projects:
+        raise HTTPException(404, "Proyecto no encontrado.")
+    now = datetime.now(timezone.utc)
+    rows = []
+    for project in projects:
+        tickets = [ticket for epic in project.epics for ticket in epic.tickets]
+        done = sum(ticket.status == "DONE" for ticket in tickets)
+        overdue = sum(
+            ticket.status != "DONE"
+            and ticket.due_date is not None
+            and _utc(ticket.due_date) < now
+            for ticket in tickets
+        )
+        rows.append([
+            project.name,
+            len(project.epics),
+            len(tickets),
+            done,
+            len(tickets) - done,
+            overdue,
+        ])
+    scope = projects[0].name if project_id else "Todos los proyectos"
+    return scope, rows
+
+
+async def _team_workload_data(db: AsyncSession, include_inactive: bool) -> list[dict]:
+    users_query = select(User).order_by(User.full_name)
+    if not include_inactive:
+        users_query = users_query.where(User.is_active.is_(True))
+    users = (await db.scalars(users_query)).all()
+    tickets = (await db.scalars(select(Ticket))).all()
+    incidents = (await db.scalars(select(Incident))).all()
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    return [
+        {
+            "user": user_json(member),
+            "active_tickets": sum(ticket.assignee_id == member.id and ticket.status != "DONE" for ticket in tickets),
+            "in_progress": sum(ticket.assignee_id == member.id and ticket.status == "IN_PROGRESS" for ticket in tickets),
+            "blocked": sum(ticket.assignee_id == member.id and ticket.status == "BLOCKED" for ticket in tickets),
+            "done_last_7d": sum(
+                ticket.assignee_id == member.id
+                and ticket.status == "DONE"
+                and ticket.completed_at is not None
+                and _utc(ticket.completed_at) >= week_ago
+                for ticket in tickets
+            ),
+            "open_incidents": sum(
+                incident.assignee_id == member.id and incident.status not in {"RESOLVED", "CLOSED"}
+                for incident in incidents
+            ),
+        }
+        for member in users
+    ]
+
+
+def _report_response(
+    report_format: str,
+    filename: str,
+    title: str,
+    scope: str,
+    headers: list[str],
+    rows: list[list[object]],
+) -> Response:
+    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    if report_format == "pdf":
+        content = build_pdf_report(title, scope, generated, headers, rows)
+        media_type = "application/pdf"
+    else:
+        content = build_excel_report(title, scope, generated, headers, rows)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}.{report_format}"'},
+    )
 
 
 def _ticket_summary(ticket: Ticket) -> dict:
@@ -686,33 +769,59 @@ async def team_workload(
     db: AsyncSession = Depends(get_db),
 ):
     _require_lead(user)
-    users_query = select(User).order_by(User.full_name)
-    if not include_inactive:
-        users_query = users_query.where(User.is_active.is_(True))
-    users = (await db.scalars(users_query)).all()
-    tickets = (await db.scalars(select(Ticket))).all()
-    incidents = (await db.scalars(select(Incident))).all()
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    return [
-        {
-            "user": user_json(member),
-            "active_tickets": sum(ticket.assignee_id == member.id and ticket.status != "DONE" for ticket in tickets),
-            "in_progress": sum(ticket.assignee_id == member.id and ticket.status == "IN_PROGRESS" for ticket in tickets),
-            "blocked": sum(ticket.assignee_id == member.id and ticket.status == "BLOCKED" for ticket in tickets),
-            "done_last_7d": sum(
-                ticket.assignee_id == member.id
-                and ticket.status == "DONE"
-                and ticket.completed_at is not None
-                and _utc(ticket.completed_at) >= week_ago
-                for ticket in tickets
-            ),
-            "open_incidents": sum(
-                incident.assignee_id == member.id and incident.status not in {"RESOLVED", "CLOSED"}
-                for incident in incidents
-            ),
-        }
-        for member in users
+    return await _team_workload_data(db, include_inactive)
+
+
+@app.get("/reports/projects")
+async def projects_report(
+    report_format: str = Query(default="pdf", alias="format", pattern="^(pdf|xlsx)$"),
+    project_id: str | None = None,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_lead(user)
+    scope, rows = await _project_report_data(db, project_id)
+    suffix = project_id or "todos"
+    return _report_response(
+        report_format,
+        f"corestream_proyectos_{suffix}_{datetime.now(timezone.utc):%Y%m%d}",
+        "Estado de proyectos",
+        scope,
+        ["Proyecto", "Épicas", "Tickets", "Completados", "Pendientes", "Atrasados"],
+        rows,
+    )
+
+
+@app.get("/reports/team")
+async def team_report(
+    report_format: str = Query(default="pdf", alias="format", pattern="^(pdf|xlsx)$"),
+    include_inactive: bool = False,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_lead(user)
+    workload = await _team_workload_data(db, include_inactive)
+    rows = [
+        [
+            item["user"]["full_name"],
+            item["user"]["role"],
+            "Sí" if item["user"]["is_active"] else "No",
+            item["active_tickets"],
+            item["in_progress"],
+            item["blocked"],
+            item["done_last_7d"],
+            item["open_incidents"],
+        ]
+        for item in workload
     ]
+    return _report_response(
+        report_format,
+        f"corestream_equipo_{datetime.now(timezone.utc):%Y%m%d}",
+        "Carga de trabajo del equipo",
+        "Incluye inactivos" if include_inactive else "Solo integrantes activos",
+        ["Integrante", "Rol", "Activo", "Tickets activos", "En progreso", "Bloqueados", "Hechos 7 días", "Incidencias"],
+        rows,
+    )
 
 
 @app.post("/tickets/{ticket_id}/assign")

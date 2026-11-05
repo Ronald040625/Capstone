@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme.dart';
+import '../core/config.dart';
 import '../data/repository.dart';
 import '../models/models.dart';
 import '../providers.dart';
+import 'report_actions.dart';
 import 'widgets.dart';
 
 class TeamScreen extends ConsumerWidget {
@@ -27,13 +29,34 @@ class TeamScreen extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
             if (i == 0) {
-              return SwitchListTile.adaptive(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                title: Text(s('include_inactive')),
-                value: includeInactive,
-                onChanged: (value) => ref
-                    .read(includeInactiveTeamProvider.notifier)
-                    .state = value,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SwitchListTile.adaptive(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    title: Text(s('include_inactive')),
+                    value: includeInactive,
+                    onChanged: (value) => ref
+                        .read(includeInactiveTeamProvider.notifier)
+                        .state = value,
+                  ),
+                  if (!AppConfig.isDemo) ...[
+                    Text(s('export_report'),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    ReportButtons(
+                      strings: s,
+                      onExport: (format) => runReportExport(
+                        context,
+                        s,
+                        () => ref.read(repositoryProvider).exportTeamReport(
+                              format,
+                              includeInactive: includeInactive,
+                            ),
+                      ),
+                    ),
+                  ],
+                ],
               );
             }
             final m = members[i - 1];

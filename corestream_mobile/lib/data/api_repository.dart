@@ -15,8 +15,10 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart' show Color;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -555,6 +557,55 @@ class ApiRepository implements CoreStreamRepository {
           openIncidents: (m['open_incidents'] ?? 0) as int,
         ),
     ];
+  }
+
+  String _reportName(String kind) {
+    final now = DateTime.now();
+    final date = '${now.year}${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}';
+    return 'corestream_${kind}_$date';
+  }
+
+  Future<void> _downloadReport(
+    String path,
+    ReportFormat format,
+    String name,
+    Map<String, dynamic> query,
+  ) async {
+    final response = await _dio.get<List<int>>(
+      path,
+      queryParameters: {...query, 'format': format.wire},
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = Uint8List.fromList(response.data ?? const []);
+    await FileSaver.instance.saveFile(
+      name: name,
+      bytes: bytes,
+      fileExtension: format.wire,
+      mimeType:
+          format == ReportFormat.pdf ? MimeType.pdf : MimeType.microsoftExcel,
+    );
+  }
+
+  @override
+  Future<void> exportProjectsReport(ReportFormat format, {String? projectId}) {
+    return _downloadReport(
+      '/reports/projects',
+      format,
+      _reportName(projectId == null ? 'proyectos' : 'proyecto_$projectId'),
+      {if (projectId != null) 'project_id': projectId},
+    );
+  }
+
+  @override
+  Future<void> exportTeamReport(ReportFormat format,
+      {bool includeInactive = false}) {
+    return _downloadReport(
+      '/reports/team',
+      format,
+      _reportName('equipo'),
+      {'include_inactive': includeInactive},
+    );
   }
 
   @override

@@ -19,6 +19,7 @@ dependencies:
   web_socket_channel: ^3.0.3
   # Persistencia ligera de preferencias (tema, idioma, modo)
   shared_preferences: ^2.2.3
+  file_saver: ^0.7.0
 
   # Push reales (desactivado por defecto; ver lib/services/push_service.dart
   # y README «Activar Firebase»). Descomentar al ejecutar `flutterfire configure`:

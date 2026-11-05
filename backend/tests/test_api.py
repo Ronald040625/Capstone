@@ -1,4 +1,5 @@
 import os
+from io import BytesIO
 from pathlib import Path
 
 TEST_DB = Path(__file__).resolve().parents[1] / "corestream-test.db"
@@ -8,6 +9,7 @@ os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB.as_posix()}"
 os.environ["SECRET_KEY"] = "test-key"
 
 from fastapi.testclient import TestClient
+from openpyxl import load_workbook
 
 from app.main import app
 
@@ -110,6 +112,42 @@ def test_database_and_main_flows():
         )
         denied = client.get("/mobile/team/workload", headers=diego_headers)
         assert denied.status_code == 403
+
+        projects_pdf = client.get(
+            "/reports/projects?format=pdf", headers=admin_headers
+        )
+        assert projects_pdf.status_code == 200
+        assert projects_pdf.content.startswith(b"%PDF")
+        assert projects_pdf.headers["content-type"] == "application/pdf"
+
+        project_excel = client.get(
+            "/reports/projects?format=xlsx&project_id=p-mobile",
+            headers=admin_headers,
+        )
+        assert project_excel.status_code == 200
+        workbook = load_workbook(BytesIO(project_excel.content), read_only=True)
+        project_rows = list(workbook["Reporte"].values)
+        assert project_rows[1][1] == "Aplicación Mobile"
+        assert [row[0] for row in project_rows[5:]] == ["Aplicación Mobile"]
+
+        team_excel = client.get(
+            "/reports/team?format=xlsx&include_inactive=true",
+            headers=admin_headers,
+        )
+        assert team_excel.status_code == 200
+        workbook = load_workbook(BytesIO(team_excel.content), read_only=True)
+        team_rows = list(workbook["Reporte"].values)
+        assert team_rows[1][1] == "Incluye inactivos"
+        assert "Paula Soto" in [row[0] for row in team_rows[5:]]
+
+        denied_report = client.get(
+            "/reports/projects?format=pdf", headers=diego_headers
+        )
+        assert denied_report.status_code == 403
+        invalid_report = client.get(
+            "/reports/projects?format=csv", headers=admin_headers
+        )
+        assert invalid_report.status_code == 422
 
         logout = client.post(
             "/auth/logout",

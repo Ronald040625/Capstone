@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme.dart';
+import '../core/config.dart';
 import '../data/repository.dart';
 import '../providers.dart';
+import 'report_actions.dart';
 import 'ticket_detail_screen.dart';
 import 'ticket_sheets.dart';
 import 'widgets.dart';
@@ -16,15 +18,42 @@ class ProjectsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projects = ref.watch(projectsProvider);
+    final s = ref.watch(stringsProvider);
+    final canExport =
+        ref.watch(authProvider)?.isLead == true && !AppConfig.isDemo;
     return AsyncView<List<ProjectSummary>>(
       value: projects,
       builder: (list) => RefreshIndicator(
         onRefresh: () => ref.refresh(projectsProvider.future),
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemCount: list.length,
+          itemCount: list.length + (canExport ? 1 : 0),
           separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) => ProjectCard(summary: list[i]),
+          itemBuilder: (_, i) {
+            if (canExport && i == 0) {
+              return CsCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s('export_report'),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    ReportButtons(
+                      strings: s,
+                      onExport: (format) => runReportExport(
+                        context,
+                        s,
+                        () => ref
+                            .read(repositoryProvider)
+                            .exportProjectsReport(format),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return ProjectCard(summary: list[i - (canExport ? 1 : 0)]);
+          },
         ),
       ),
     );
@@ -113,6 +142,26 @@ class BoardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(board.valueOrNull?.project.name ?? ''),
+        actions: [
+          if (me?.isLead == true && !AppConfig.isDemo)
+            PopupMenuButton<ReportFormat>(
+              tooltip: s('export_report'),
+              icon: const Icon(Icons.download_outlined),
+              onSelected: (format) => runReportExport(
+                context,
+                s,
+                () => ref
+                    .read(repositoryProvider)
+                    .exportProjectsReport(format, projectId: projectId),
+              ),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                    value: ReportFormat.pdf, child: Text(s('export_pdf'))),
+                PopupMenuItem(
+                    value: ReportFormat.xlsx, child: Text(s('export_excel'))),
+              ],
+            ),
+        ],
       ),
       body: AsyncView<Board>(
         value: board,

@@ -9,6 +9,12 @@ library;
 
 import '../models/models.dart';
 
+enum ReportFormat { pdf, xlsx }
+
+extension ReportFormatWire on ReportFormat {
+  String get wire => name;
+}
+
 // --------------------------------------------------------- agregados de vista
 
 class ProjectSummary {
@@ -142,6 +148,9 @@ abstract class CoreStreamRepository {
   Future<List<Incident>> fetchIncidents();
   Future<Incident> fetchIncident(String incidentId);
   Future<List<MemberLoad>> fetchTeamWorkload({bool includeInactive = false});
+  Future<void> exportProjectsReport(ReportFormat format, {String? projectId});
+  Future<void> exportTeamReport(ReportFormat format,
+      {bool includeInactive = false});
   Future<List<AppNotification>> fetchNotifications();
   Future<int> unreadCount();
   Future<List<User>> fetchUsers();

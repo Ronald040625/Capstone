@@ -691,6 +691,18 @@ class DemoRepository implements CoreStreamRepository {
   }
 
   @override
+  Future<void> exportProjectsReport(ReportFormat format,
+      {String? projectId}) async {
+    throw UnsupportedError('Los reportes requieren conexión al servidor.');
+  }
+
+  @override
+  Future<void> exportTeamReport(ReportFormat format,
+      {bool includeInactive = false}) async {
+    throw UnsupportedError('Los reportes requieren conexión al servidor.');
+  }
+
+  @override
   Future<List<AppNotification>> fetchNotifications() async {
     final list = [...(_notifs[_current!.id] ?? const <AppNotification>[])];
     list.sort((a, b) => b.ts.compareTo(a.ts));
