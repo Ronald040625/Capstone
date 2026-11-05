@@ -48,6 +48,13 @@ def test_database_and_main_flows():
 
         diego = login(client, "u-diego")
         diego_headers = headers(diego)
+        device = client.post(
+            "/devices/",
+            headers=diego_headers,
+            json={"fcm_token": "fcm-diego-test", "platform": "android"},
+        )
+        assert device.status_code == 200
+        assert device.json()["active"] is True
         comment = client.post(
             "/incidents/i-lang/comments",
             headers=diego_headers,
@@ -70,10 +77,15 @@ def test_database_and_main_flows():
         logout = client.post(
             "/auth/logout",
             headers=diego_headers,
-            json={"refresh_token": diego["refresh_token"]},
+            json={
+                "refresh_token": diego["refresh_token"],
+                "fcm_token": "fcm-diego-test",
+            },
         )
         assert logout.status_code == 200
+        assert logout.json()["device_deactivated"] is True
         refresh = client.post(
             "/auth/refresh", json={"refresh_token": diego["refresh_token"]}
         )
         assert refresh.status_code == 401
+        assert client.get("/auth/me", headers=diego_headers).status_code == 401

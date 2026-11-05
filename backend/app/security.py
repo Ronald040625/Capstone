@@ -30,16 +30,24 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(actual, expected)
 
 
-def create_access_token(user_id: str, minutes: int = 120) -> str:
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_access_token(user_id: str, session_id: str, minutes: int = 120) -> str:
     header = _b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
-    payload = {"sub": user_id, "exp": int(time.time()) + minutes * 60}
+    payload = {
+        "sub": user_id,
+        "sid": session_id,
+        "exp": int(time.time()) + minutes * 60,
+    }
     body = _b64(json.dumps(payload).encode())
     unsigned = f"{header}.{body}"
     signature = _b64(hmac.new(SECRET_KEY, unsigned.encode(), hashlib.sha256).digest())
     return f"{unsigned}.{signature}"
 
 
-def read_access_token(token: str) -> str | None:
+def read_access_claims(token: str) -> tuple[str, str] | None:
     try:
         header, body, signature = token.split(".", 2)
         unsigned = f"{header}.{body}"
@@ -52,7 +60,7 @@ def read_access_token(token: str) -> str | None:
         payload = json.loads(_unb64(body).decode())
         if int(payload["exp"]) < int(time.time()):
             return None
-        return str(payload["sub"])
+        return str(payload["sub"]), str(payload["sid"])
     except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         return None
 

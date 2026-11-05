@@ -43,6 +43,7 @@ class ApiRepository implements CoreStreamRepository {
   final Dio _dio;
   String? _accessToken;
   String? _refreshToken;
+  String? _fcmToken;
   User? _current;
   WebSocketChannel? _ws;
   bool _wsShouldRun = false;
@@ -147,20 +148,27 @@ class ApiRepository implements CoreStreamRepository {
   Future<void> logout() async {
     _wsShouldRun = false;
     await _ws?.sink.close();
-    if (_refreshToken != null) {
+    final refreshToken = _refreshToken;
+    if (refreshToken != null) {
       try {
-        await _dio.post('/auth/logout', data: {'refresh_token': _refreshToken});
+        await _dio.post('/auth/logout', data: {
+          'refresh_token': refreshToken,
+          if (_fcmToken != null) 'fcm_token': _fcmToken,
+        });
       } catch (_) {/* el logout local no debe fallar por red */}
     }
     _accessToken = null;
     _refreshToken = null;
+    _fcmToken = null;
     _current = null;
+    _bump();
   }
 
   @override
   Future<void> registerDevice(String fcmToken, String platform) async {
     await _dio
         .post('/devices/', data: {'fcm_token': fcmToken, 'platform': platform});
+    _fcmToken = fcmToken;
   }
 
   // ------------------------------------------------------ websocket (push)

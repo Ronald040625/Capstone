@@ -142,3 +142,14 @@ class SessionToken(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PushDevice(Base):
+    __tablename__ = "push_devices"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    fcm_token: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    platform: Mapped[str] = mapped_column(String(30))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

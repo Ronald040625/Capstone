@@ -18,6 +18,7 @@ from .models import (
     IncidentComment,
     Notification,
     Project,
+    PushDevice,
     SessionToken,
     Subtask,
     Ticket,
@@ -28,7 +29,8 @@ from .models import (
 from .security import (
     create_access_token,
     create_refresh_token,
-    read_access_token,
+    hash_refresh_token,
+    read_access_claims,
     verify_password,
 )
 from .seed import seed_database
@@ -45,10 +47,16 @@ class DemoLoginBody(BaseModel):
 
 class LogoutBody(BaseModel):
     refresh_token: str | None = None
+    fcm_token: str | None = None
 
 
 class RefreshBody(BaseModel):
     refresh_token: str
+
+
+class DeviceBody(BaseModel):
+    fcm_token: str
+    platform: str
 
 
 class AssignBody(BaseModel):
@@ -146,7 +154,13 @@ async def current_user(
 ) -> User:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Sesión no válida.")
-    user_id = read_access_token(authorization.removeprefix("Bearer ").strip())
+    claims = read_access_claims(authorization.removeprefix("Bearer ").strip())
+    if not claims:
+        raise HTTPException(401, "Sesión no válida.")
+    user_id, session_id = claims
+    session = await db.get(SessionToken, session_id)
+    if not session or session.revoked or session.user_id != user_id:
+        raise HTTPException(401, "Sesión no válida.")
     user = await db.get(User, user_id) if user_id else None
     if not user or not user.is_active:
         raise HTTPException(401, "Sesión no válida.")
@@ -155,10 +169,11 @@ async def current_user(
 
 async def _create_session(db: AsyncSession, user: User) -> dict:
     refresh = create_refresh_token()
-    db.add(SessionToken(token=refresh, user_id=user.id))
+    session_id = hash_refresh_token(refresh)
+    db.add(SessionToken(token=session_id, user_id=user.id))
     await db.commit()
     return {
-        "access_token": create_access_token(user.id),
+        "access_token": create_access_token(user.id, session_id),
         "refresh_token": refresh,
         "token_type": "bearer",
         "user": user_json(user),
@@ -326,13 +341,17 @@ async def auth_me(user: User = Depends(current_user)):
 
 @app.post("/auth/refresh")
 async def refresh_session(body: RefreshBody, db: AsyncSession = Depends(get_db)):
-    token = await db.get(SessionToken, body.refresh_token)
+    session_id = hash_refresh_token(body.refresh_token)
+    token = await db.get(SessionToken, session_id)
     if not token or token.revoked:
         raise HTTPException(401, "La sesión ya no está vigente.")
     user = await db.get(User, token.user_id)
     if not user or not user.is_active:
         raise HTTPException(401, "La sesión ya no está vigente.")
-    return {"access_token": create_access_token(user.id), "token_type": "bearer"}
+    return {
+        "access_token": create_access_token(user.id, session_id),
+        "token_type": "bearer",
+    }
 
 
 @app.post("/auth/logout")
@@ -341,12 +360,27 @@ async def logout(
     user: User = Depends(current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    changed = False
     if body.refresh_token:
-        token = await db.get(SessionToken, body.refresh_token)
+        token = await db.get(SessionToken, hash_refresh_token(body.refresh_token))
         if token and token.user_id == user.id:
             token.revoked = True
-            await db.commit()
-    return {"ok": True}
+            changed = True
+    device_deactivated = False
+    if body.fcm_token:
+        device = await db.scalar(
+            select(PushDevice).where(
+                PushDevice.user_id == user.id,
+                PushDevice.fcm_token == body.fcm_token,
+            )
+        )
+        if device:
+            device.is_active = False
+            device_deactivated = True
+            changed = True
+    if changed:
+        await db.commit()
+    return {"ok": True, "device_deactivated": device_deactivated}
 
 
 @app.get("/mobile/dashboard")
@@ -838,16 +872,42 @@ async def mark_all_read(user: User = Depends(current_user), db: AsyncSession = D
 
 
 @app.post("/devices/")
-async def register_device(user: User = Depends(current_user)):
-    return {"ok": True}
+async def register_device(
+    body: DeviceBody,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    device = await db.scalar(
+        select(PushDevice).where(PushDevice.fcm_token == body.fcm_token)
+    )
+    if device:
+        device.user_id = user.id
+        device.platform = body.platform
+        device.is_active = True
+    else:
+        device = PushDevice(
+            id=_id(),
+            user_id=user.id,
+            fcm_token=body.fcm_token,
+            platform=body.platform,
+        )
+        db.add(device)
+    await db.commit()
+    return {"id": device.id, "active": device.is_active}
 
 
 @app.websocket("/ws/mobile/notifications")
 async def websocket_notifications(websocket: WebSocket, token: str):
-    user_id = read_access_token(token)
-    if not user_id:
+    claims = read_access_claims(token)
+    if not claims:
         await websocket.close(code=1008)
         return
+    user_id, session_id = claims
+    async with SessionLocal() as db:
+        session = await db.get(SessionToken, session_id)
+        if not session or session.revoked or session.user_id != user_id:
+            await websocket.close(code=1008)
+            return
     await websocket.accept()
     try:
         while True:
