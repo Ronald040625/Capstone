@@ -1,4 +1,4 @@
-/// Internacionalización ligera ES/EN sin dependencias externas.
+/// Internacionalización ligera sin dependencias externas.
 ///
 /// El idioma activo vive en un provider (localeProvider); los widgets
 /// obtienen textos con `S.of(ref)` o `S.byCode('es')`.
@@ -11,14 +11,28 @@ class S {
 
   String call(String key) => _m[key] ?? _es[key] ?? key;
 
-  static S byCode(String code) => S(code == 'en' ? _en : _es);
+  static const dictionaryVersion = 2;
 
-  static const supported = ['es', 'en'];
+  static S byCode(String code) => switch (code) {
+    'en' => const S(_en),
+    'fr' => const S(_fr),
+    _ => const S(_es),
+  };
+
+  static const supported = ['es', 'en', 'fr'];
+
+  static Iterable<String> missingKeys(String code) {
+    final map = switch (code) {
+      'en' => _en,
+      'fr' => _fr,
+      _ => _es,
+    };
+    return _es.keys.where((key) => !map.containsKey(key));
+  }
 
   static const Map<String, String> _es = {
     'app_name': 'CoreStream',
-    'login_sub':
-        'Selecciona un usuario demo para entrar. La app adapta la navegación y los permisos según el rol, igual que la versión web.',
+    'login_sub': 'Selecciona un usuario demo para entrar. La app adapta la navegación y los permisos según el rol, igual que la versión web.',
     'demo_note': 'Datos de demostración — ningún cambio se guarda.',
     'api_mode': 'Conectado al servidor',
     'role_ADMIN': 'Administrador',
@@ -81,8 +95,7 @@ class S {
     'activity': 'Registro de actividad',
     'assign': 'Asignar',
     'reassign': 'Reasignar',
-    'assign_sub':
-        'Elige a quién asignar esta tarea. Recibirá una notificación al instante.',
+    'assign_sub': 'Elige a quién asignar esta tarea. Recibirá una notificación al instante.',
     'start': 'Comenzar a trabajar',
     'complete': 'Completar',
     'raise_q': 'Plantear pregunta',
@@ -91,12 +104,10 @@ class S {
     'complete_sub': 'Pega el enlace del Pull Request para cerrar el ticket.',
     'pr_link': 'Enlace de PR',
     'pr_invalid': 'Enlace inválido. Se admite GitHub, GitLab o Bitbucket.',
-    'q_sub':
-        'El ticket quedará bloqueado y se pausará el temporizador hasta que el líder responda.',
+    'q_sub': 'El ticket quedará bloqueado y se pausará el temporizador hasta que el líder responda.',
     'q_ph': '¿Qué impide avanzar? (mín. 10 caracteres)',
     'q_short': 'Escribe al menos 10 caracteres.',
-    'rd_sub':
-        'El ticket pasará a otra persona del equipo con una razón visible en el historial.',
+    'rd_sub': 'El ticket pasará a otra persona del equipo con una razón visible en el historial.',
     'rd_reason': 'Razón (mín. 10 caracteres)',
     'rs_sub':
         'Describe cómo se resolvió el bloqueo para reanudar el temporizador.',
@@ -129,8 +140,7 @@ class S {
     'open_incidents': 'Incidencias abiertas',
     'notifications': 'Notificaciones',
     'mark_all': 'Marcar todas como leídas',
-    'no_notifs':
-        'Sin notificaciones nuevas.\nCuando ocurra algo en tus proyectos, aparecerá aquí.',
+    'no_notifs': 'Sin notificaciones nuevas.\nCuando ocurra algo en tus proyectos, aparecerá aquí.',
     'no_tickets': 'No hay tickets con este filtro.',
     'settings': 'Ajustes',
     'theme': 'Tema',
@@ -162,8 +172,7 @@ class S {
 
   static const Map<String, String> _en = {
     'app_name': 'CoreStream',
-    'login_sub':
-        'Pick a demo user to sign in. The app adapts navigation and permissions to the role, just like the web version.',
+    'login_sub': 'Pick a demo user to sign in. The app adapts navigation and permissions to the role, just like the web version.',
     'demo_note': 'Demo data — nothing is saved.',
     'api_mode': 'Connected to server',
     'role_ADMIN': 'Administrator',
@@ -236,12 +245,10 @@ class S {
     'complete_sub': 'Paste the Pull Request link to close the ticket.',
     'pr_link': 'PR link',
     'pr_invalid': 'Invalid link. GitHub, GitLab or Bitbucket supported.',
-    'q_sub':
-        'The ticket will be blocked and the timer paused until the leader answers.',
+    'q_sub': 'The ticket will be blocked and the timer paused until the leader answers.',
     'q_ph': "What's blocking you? (min. 10 characters)",
     'q_short': 'Write at least 10 characters.',
-    'rd_sub':
-        'The ticket moves to another teammate with a reason visible in the history.',
+    'rd_sub': 'The ticket moves to another teammate with a reason visible in the history.',
     'rd_reason': 'Reason (min. 10 characters)',
     'rs_sub': 'Describe how the blocker was resolved to resume the timer.',
     'send': 'Send',
@@ -273,8 +280,7 @@ class S {
     'open_incidents': 'Open incidents',
     'notifications': 'Notifications',
     'mark_all': 'Mark all as read',
-    'no_notifs':
-        'No new notifications.\nWhen something happens in your projects, it shows up here.',
+    'no_notifs': 'No new notifications.\nWhen something happens in your projects, it shows up here.',
     'no_tickets': 'No tickets match this filter.',
     'settings': 'Settings',
     'theme': 'Theme',
@@ -303,6 +309,149 @@ class S {
     'ev_resolved': 'resolved the blocker',
     'ev_redirected_to': 'redirected the ticket to',
   };
+
+  static const Map<String, String> _fr = {
+    'app_name': 'CoreStream',
+    'login_sub': "Sélectionnez un utilisateur de démonstration. L'application adapte la navigation et les autorisations selon le rôle, comme la version web.",
+    'demo_note':
+        "Données de démonstration — aucune modification n'est enregistrée.",
+    'api_mode': 'Connecté au serveur',
+    'role_ADMIN': 'Administrateur',
+    'role_GROUP_LEADER': "Chef d'équipe",
+    'role_DEVELOPER': 'Développeur',
+    'tab_home': 'Accueil',
+    'tab_work': 'Mon travail',
+    'tab_projects': 'Projets',
+    'tab_incidents': 'Incidents',
+    'tab_team': 'Équipe',
+    'hello': 'Bonjour',
+    'home_sub_admin': 'État global des projets',
+    'home_sub_dev': "Votre travail d'aujourd'hui",
+    'st_apps': 'Applications',
+    'st_open': 'Tickets ouverts',
+    'st_blocked': 'Bloqués',
+    'st_late': 'En retard',
+    'st_mine': 'Mes tickets',
+    'st_prog': 'En cours',
+    'st_done_week': 'Terminés cette semaine',
+    'my_incidents': 'Mes incidents',
+    'proj_status': 'État des projets',
+    'attention': 'À surveiller',
+    'all_clear': 'Tout est en ordre : rien ne nécessite votre attention.',
+    'epics': 'épiques',
+    'tickets': 'tickets',
+    'pending': 'en attente',
+    'overdue': 'en retard',
+    'of': 'sur',
+    's_TODO': 'À faire',
+    's_IN_PROGRESS': 'En cours',
+    's_BLOCKED': 'Bloqué',
+    's_REDIRECTED': 'Réaffecté',
+    's_DONE': 'Terminé',
+    'p_LOW': 'Basse',
+    'p_MEDIUM': 'Moyenne',
+    'p_HIGH': 'Haute',
+    'p_URGENT': 'Urgente',
+    'is_OPEN': 'Ouvert',
+    'is_IN_PROGRESS': 'En cours',
+    'is_UNDER_REVIEW': 'En révision',
+    'is_RESOLVED': 'Résolu',
+    'is_CLOSED': 'Fermé',
+    'is_REOPENED': 'Rouvert',
+    'sev_CRITICAL': 'Critique',
+    'sev_HIGH': 'Élevée',
+    'sev_MEDIUM': 'Moyenne',
+    'sev_LOW': 'Faible',
+    'cat_NEW_FEATURE': 'Nouvelle fonctionnalité',
+    'cat_CRITICAL_ERROR': 'Erreur critique',
+    'cat_NON_CRITICAL_ERROR': 'Erreur non critique',
+    'cat_USABILITY_ISSUE': "Problème d'utilisation",
+    'assignee': 'Assigné à',
+    'unassigned': 'Non assigné',
+    'due': 'Échéance',
+    'time_spent': 'Temps consacré',
+    'time_blocked': 'Temps bloqué',
+    'description': 'Description',
+    'subtasks': 'Sous-tâches',
+    'activity': "Journal d'activité",
+    'assign': 'Assigner',
+    'reassign': 'Réassigner',
+    'assign_sub': 'Choisissez la personne responsable. Elle recevra immédiatement une notification.',
+    'start': 'Commencer le travail',
+    'complete': 'Terminer',
+    'raise_q': 'Poser une question',
+    'redirect': 'Réaffecter',
+    'resume': 'Reprendre le travail',
+    'complete_sub': 'Collez le lien de la Pull Request pour fermer le ticket.',
+    'pr_link': 'Lien de la PR',
+    'pr_invalid': 'Lien non valide. GitHub, GitLab et Bitbucket sont acceptés.',
+    'q_sub': "Le ticket sera bloqué et le minuteur suspendu jusqu'à la réponse du responsable.",
+    'q_ph': "Qu'est-ce qui bloque l'avancement ? (10 caractères minimum)",
+    'q_short': 'Saisissez au moins 10 caractères.',
+    'rd_sub': "Le ticket sera transféré à un autre membre de l'équipe avec un motif visible dans l'historique.",
+    'rd_reason': 'Motif (10 caractères minimum)',
+    'rs_sub':
+        'Décrivez comment le blocage a été résolu pour reprendre le minuteur.',
+    'send': 'Envoyer',
+    'cancel': 'Annuler',
+    'confirm': 'Confirmer',
+    'save': 'Enregistrer',
+    'new_ticket': 'Nouveau ticket',
+    'nt_sub': "Il sera créé dans cette épique et l'équipe sera informée.",
+    'nt_title': 'Titre du ticket',
+    'nt_short': 'Saisissez au moins 5 caractères.',
+    'priority': 'Priorité',
+    'optional': 'facultatif',
+    'view_only':
+        'Lecture seule — votre rôle ne permet pas de modifier ce ticket.',
+    'blocked_waiting': 'En attente de la réponse du responsable',
+    'incident': 'Incident',
+    'reported_by': 'Signalé par',
+    'severity': 'Sévérité',
+    'take': "Prendre l'incident",
+    'to_review': 'Envoyer en révision',
+    'resolve_inc': 'Marquer comme résolu',
+    'close_inc': 'Fermer',
+    'reopen': 'Rouvrir',
+    'comments': 'Commentaires',
+    'add_comment': 'Ajouter un commentaire',
+    'comment_hint': 'Écrivez un commentaire',
+    'workload': 'Charge de travail',
+    'active_t': 'actifs',
+    'active_tickets': 'Tickets actifs',
+    'open_incidents': 'Incidents ouverts',
+    'notifications': 'Notifications',
+    'mark_all': 'Tout marquer comme lu',
+    'no_notifs': "Aucune nouvelle notification.\nLes événements de vos projets s'afficheront ici.",
+    'no_tickets': 'Aucun ticket ne correspond à ce filtre.',
+    'settings': 'Paramètres',
+    'theme': 'Thème',
+    'dark': 'Sombre',
+    'light': 'Clair',
+    'language': 'Langue',
+    'logout': 'Se déconnecter',
+    'push_demo': 'Notifications simulées',
+    'push_demo_sub': "Génère des événements d'équipe toutes les 20 s environ",
+    'now': 'maintenant',
+    'min_ago': 'il y a {n} min',
+    'h_ago': 'il y a {n} h',
+    'd_ago': 'il y a {n} j',
+    'n_ASSIGNMENT': 'Ticket assigné',
+    'n_QUESTION': 'Question posée',
+    'n_REDIRECT': 'Ticket réaffecté',
+    'n_COMPLETION': 'Ticket terminé',
+    'n_SYSTEM': 'Nouveau ticket',
+    'n_INCIDENT': 'Nouvel incident',
+    'all': 'Tous',
+    'f_mine': 'Les miens',
+    'error_generic':
+        "Une erreur s'est produite. Faites glisser pour réessayer.",
+    'assigned_you': 'vous a assigné',
+    'ev_created': 'a créé le ticket',
+    'ev_assigned_to': 'a assigné le ticket à',
+    'ev_resolved': 'a résolu le blocage',
+    'ev_redirected_to': 'a réaffecté le ticket à',
+  };
 }
 
 /// Tiempo relativo localizado ("hace 5 min" / "5 min ago").
@@ -330,7 +479,7 @@ String shortDate(String lang, DateTime d) {
     'sep',
     'oct',
     'nov',
-    'dic'
+    'dic',
   ];
   const en = [
     'Jan',
@@ -344,9 +493,28 @@ String shortDate(String lang, DateTime d) {
     'Sep',
     'Oct',
     'Nov',
-    'Dec'
+    'Dec',
   ];
-  final m = (lang == 'en' ? en : es)[d.month - 1];
+  const fr = [
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
+  ];
+  final months = switch (lang) {
+    'en' => en,
+    'fr' => fr,
+    _ => es,
+  };
+  final m = months[d.month - 1];
   return '${d.day} $m';
 }
 
