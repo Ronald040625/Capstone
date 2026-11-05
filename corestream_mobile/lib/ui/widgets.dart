@@ -230,6 +230,73 @@ class CsCard extends StatelessWidget {
   }
 }
 
+class SlaCard extends ConsumerWidget {
+  const SlaCard({super.key, required this.sla});
+
+  final SlaInfo sla;
+
+  String _duration(int seconds) {
+    final value = seconds.abs();
+    final days = value ~/ 86400;
+    final hours = (value % 86400) ~/ 3600;
+    final minutes = (value % 3600) ~/ 60;
+    if (days > 0) return '$days d $hours h';
+    if (hours > 0) return '$hours h $minutes min';
+    return '${minutes.clamp(1, 59)} min';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = cs(context);
+    final s = ref.watch(stringsProvider);
+    final color = sla.isOverdue ? c.red : c.green;
+    final target = _duration(sla.targetMinutes * 60);
+    final status = !sla.active
+        ? s('sla_finished')
+        : sla.isOverdue
+            ? s('sla_overdue')
+                .replaceFirst('{time}', _duration(sla.remainingSeconds))
+            : s('sla_remaining')
+                .replaceFirst('{time}', _duration(sla.remainingSeconds));
+    return CsCard(
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.schedule_outlined, color: color, size: 20),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s('sla_target').replaceFirst('{time}', target),
+                  style: const TextStyle(fontSize: 12.5),
+                ),
+                const SizedBox(height: 2),
+                Text(status,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+                if (sla.isEscalated)
+                  Text(s('sla_escalated'),
+                      style: TextStyle(fontSize: 11.5, color: c.mut)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ProgressBar extends StatelessWidget {
   const ProgressBar(this.value, {super.key});
   final double value;

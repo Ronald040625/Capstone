@@ -38,11 +38,34 @@ def test_database_and_main_flows():
         assert dashboard.status_code == 200
         assert dashboard.json()["stats"]["applications"] == 3
 
+        ticket_detail = client.get(
+            "/mobile/tickets/t-auth/detail", headers=admin_headers
+        )
+        assert ticket_detail.status_code == 200
+        ticket_sla = ticket_detail.json()["ticket"]["sla"]
+        assert ticket_sla["target_minutes"] == 480
+        assert ticket_sla["is_overdue"] is True
+        assert ticket_sla["is_escalated"] is True
+
+        admin_notifications = client.get(
+            "/notifications/", headers=admin_headers
+        ).json()
+        sla_notifications = [
+            item for item in admin_notifications if item["type"] == "SLA_ESCALATION"
+        ]
+        assert len(sla_notifications) == 1
+        assert sla_notifications[0]["ticket_id"] == "t-auth"
+
+        reevaluate = client.post("/sla/evaluate", headers=admin_headers)
+        assert reevaluate.status_code == 200
+        assert reevaluate.json()["escalated_count"] == 0
+
         incidents = client.get("/incidents/", headers=admin_headers).json()
         assert any(item["id"] == "i-lang" for item in incidents)
 
         diego = login(client, "u-diego")
         diego_headers = headers(diego)
+        assert client.post("/sla/evaluate", headers=diego_headers).status_code == 403
         general = client.get("/incidents/", headers=diego_headers).json()
         mine = client.get("/incidents/my-incidents", headers=diego_headers).json()
         assert len(general) == 3

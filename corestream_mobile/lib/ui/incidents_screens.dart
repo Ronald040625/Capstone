@@ -157,6 +157,8 @@ class IncidentRow extends ConsumerWidget {
                     Wrap(spacing: 6, children: [
                       IncidentStatusChip(incident.status),
                       SeverityChip(incident.severity),
+                      if (incident.sla?.isOverdue == true)
+                        CsChip(label: 'SLA', color: c.red, dot: false),
                     ]),
                   ],
                 ),
@@ -277,6 +279,10 @@ class IncidentDetailScreen extends ConsumerWidget {
                     dot: false),
               ]),
               const SizedBox(height: 14),
+              if (i.sla != null) ...[
+                SlaCard(sla: i.sla!),
+                const SizedBox(height: 12),
+              ],
               CsCard(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 4),

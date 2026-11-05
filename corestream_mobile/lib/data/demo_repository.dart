@@ -550,6 +550,46 @@ class DemoRepository implements CoreStreamRepository {
     );
   }
 
+  SlaInfo _ticketSla(Ticket ticket) {
+    final minutes = switch (ticket.priority) {
+      TicketPriority.urgent => 240,
+      TicketPriority.high => 480,
+      TicketPriority.medium => 1440,
+      TicketPriority.low => 2880,
+    };
+    final started = ticket.events.isEmpty
+        ? DateTime.now()
+        : ticket.events
+            .map((event) => event.ts)
+            .reduce((a, b) => a.isBefore(b) ? a : b);
+    final due = started.add(Duration(minutes: minutes));
+    final active = ticket.status != TicketStatus.done;
+    return SlaInfo(
+      policyKey: ticket.priority.wire,
+      targetMinutes: minutes,
+      dueAt: due,
+      active: active,
+      escalatedAt: active && due.isBefore(DateTime.now()) ? due : null,
+    );
+  }
+
+  SlaInfo _incidentSla(Incident incident) {
+    final minutes = switch (incident.severity) {
+      IncidentSeverity.critical => 120,
+      IncidentSeverity.high => 480,
+      IncidentSeverity.medium => 1440,
+      IncidentSeverity.low => 2880,
+    };
+    final due = incident.createdAt.add(Duration(minutes: minutes));
+    return SlaInfo(
+      policyKey: incident.severity.wire,
+      targetMinutes: minutes,
+      dueAt: due,
+      active: incident.isOpen,
+      escalatedAt: incident.isOpen && due.isBefore(DateTime.now()) ? due : null,
+    );
+  }
+
   @override
   Future<Dashboard> fetchDashboard() async {
     final me = _current!;
@@ -630,6 +670,7 @@ class DemoRepository implements CoreStreamRepository {
   @override
   Future<TicketDetail> fetchTicketDetail(String ticketId) async {
     final t = _ticket(ticketId);
+    t.sla = _ticketSla(t);
     final e = _epic(t.epicId);
     final me = _current!;
     return TicketDetail(
@@ -648,14 +689,20 @@ class DemoRepository implements CoreStreamRepository {
 
   @override
   Future<List<Incident>> fetchIncidents() async {
+    for (final incident in _incidents) {
+      incident.sla = _incidentSla(incident);
+    }
     final sorted = [..._incidents]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sorted;
   }
 
   @override
-  Future<Incident> fetchIncident(String incidentId) async =>
-      _incident(incidentId);
+  Future<Incident> fetchIncident(String incidentId) async {
+    final incident = _incident(incidentId);
+    incident.sla = _incidentSla(incident);
+    return incident;
+  }
 
   @override
   Future<List<MemberLoad>> fetchTeamWorkload(

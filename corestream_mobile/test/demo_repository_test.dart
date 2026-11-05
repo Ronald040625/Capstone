@@ -93,6 +93,16 @@ void main() {
     expect(dash.stats['mine'], dash.myTickets.length);
   });
 
+  test('el detalle muestra el SLA y su escalamiento', () async {
+    await repo.login(dev);
+    final detail = await repo.fetchTicketDetail('t1');
+
+    expect(detail.ticket.sla, isNotNull);
+    expect(detail.ticket.sla!.targetMinutes, 480);
+    expect(detail.ticket.sla!.isOverdue, isTrue);
+    expect(detail.ticket.sla!.isEscalated, isTrue);
+  });
+
   test('incidencias permite alternar listado general y filtro personal',
       () async {
     await repo.login(dev);

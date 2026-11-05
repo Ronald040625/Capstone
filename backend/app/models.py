@@ -153,3 +153,16 @@ class PushDevice(Base):
     platform: Mapped[str] = mapped_column(String(30))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SlaRecord(Base):
+    __tablename__ = "sla_records"
+
+    id: Mapped[str] = mapped_column(String(90), primary_key=True)
+    item_type: Mapped[str] = mapped_column(String(20), index=True)
+    item_id: Mapped[str] = mapped_column(String(40), index=True)
+    policy_key: Mapped[str] = mapped_column(String(20))
+    target_minutes: Mapped[int] = mapped_column(Integer)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

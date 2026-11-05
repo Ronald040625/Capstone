@@ -82,6 +82,21 @@ class ApiRepository implements CoreStreamRepository {
     return user;
   }
 
+  SlaInfo? _parseSla(dynamic value) {
+    if (value is! Map) return null;
+    final dueAt = DateTime.tryParse((value['due_at'] ?? '').toString());
+    if (dueAt == null) return null;
+    return SlaInfo(
+      policyKey: (value['policy_key'] ?? '').toString(),
+      targetMinutes: (value['target_minutes'] ?? 0) as int,
+      dueAt: dueAt,
+      active: (value['active'] ?? true) as bool,
+      escalatedAt: value['escalated_at'] == null
+          ? null
+          : DateTime.tryParse(value['escalated_at'].toString()),
+    );
+  }
+
   Ticket _parseTicketSummary(Map<String, dynamic> j, String epicId) {
     final assignee = j['assignee'];
     if (assignee is Map<String, dynamic>) _parseUser(assignee);
@@ -99,6 +114,7 @@ class ApiRepository implements CoreStreamRepository {
       dueDate: j['due_date'] != null
           ? DateTime.tryParse(j['due_date'] as String)
           : null,
+      sla: _parseSla(j['sla']),
       subtasks: [
         for (var k = 0; k < ((j['subtasks_done'] ?? 0) as int); k++)
           Subtask(id: 'done-$k', title: '', done: true),
@@ -414,6 +430,7 @@ class ApiRepository implements CoreStreamRepository {
       runningSince:
           (timer['is_running'] ?? false) as bool ? DateTime.now() : null,
       prLink: tj['pr_link'] as String?,
+      sla: _parseSla(tj['sla']),
       subtasks: [
         for (final s in (j['subtasks'] ?? []) as List)
           Subtask(
@@ -529,6 +546,7 @@ class ApiRepository implements CoreStreamRepository {
       assigneeId: j['assignee_id']?.toString(),
       createdAt: DateTime.tryParse((j['created_at'] ?? '') as String) ??
           DateTime.now(),
+      sla: _parseSla(j['sla']),
       comments: comments,
     );
   }

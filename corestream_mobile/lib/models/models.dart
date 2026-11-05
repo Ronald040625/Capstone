@@ -227,6 +227,26 @@ class TicketEvent {
   final TicketStatus? toStatus;
 }
 
+class SlaInfo {
+  const SlaInfo({
+    required this.policyKey,
+    required this.targetMinutes,
+    required this.dueAt,
+    this.active = true,
+    this.escalatedAt,
+  });
+
+  final String policyKey;
+  final int targetMinutes;
+  final DateTime dueAt;
+  final bool active;
+  final DateTime? escalatedAt;
+
+  int get remainingSeconds => dueAt.difference(DateTime.now()).inSeconds;
+  bool get isOverdue => active && remainingSeconds < 0;
+  bool get isEscalated => escalatedAt != null;
+}
+
 class Ticket {
   Ticket({
     required this.id,
@@ -243,6 +263,7 @@ class Ticket {
     this.blockedSeconds = 0,
     this.runningSince,
     this.prLink,
+    this.sla,
     List<Subtask>? subtasks,
     List<TicketEvent>? events,
   })  : subtasks = subtasks ?? [],
@@ -265,6 +286,7 @@ class Ticket {
   int blockedSeconds;
   DateTime? runningSince;
   String? prLink;
+  SlaInfo? sla;
   final List<Subtask> subtasks;
   final List<TicketEvent> events;
 
@@ -304,6 +326,7 @@ class Incident {
     required this.reporterId,
     this.assigneeId,
     required this.createdAt,
+    this.sla,
     List<IncidentComment>? comments,
   }) : comments = comments ?? [];
 
@@ -318,6 +341,7 @@ class Incident {
   final String reporterId;
   String? assigneeId;
   final DateTime createdAt;
+  SlaInfo? sla;
   final List<IncidentComment> comments;
 
   bool get isOpen =>

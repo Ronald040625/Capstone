@@ -79,6 +79,11 @@ class _TicketDetailBody extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
 
+        if (t.sla != null) ...[
+          SlaCard(sla: t.sla!),
+          const SizedBox(height: 12),
+        ],
+
         if (t.status == TicketStatus.inProgress ||
             t.status == TicketStatus.blocked)
           _TimerCard(ticket: t),

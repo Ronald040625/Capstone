@@ -1,7 +1,7 @@
 import asyncio
 import os
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
@@ -20,6 +20,7 @@ from .models import (
     Project,
     PushDevice,
     SessionToken,
+    SlaRecord,
     Subtask,
     Ticket,
     TicketEvent,
@@ -106,8 +107,15 @@ async def lifespan(_: FastAPI):
     await create_tables()
     async with SessionLocal() as db:
         await seed_database(db)
-    yield
-    await engine.dispose()
+        await _evaluate_slas(db)
+    sla_task = asyncio.create_task(_sla_monitor())
+    try:
+        yield
+    finally:
+        sla_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await sla_task
+        await engine.dispose()
 
 
 app = FastAPI(title="CoreStream MVP API", version="1.0.0", lifespan=lifespan)
@@ -136,6 +144,171 @@ def _iso(value: datetime | None) -> str | None:
 
 def _utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+SLA_TARGET_MINUTES = {
+    "TICKET": {"URGENT": 240, "HIGH": 480, "MEDIUM": 1440, "LOW": 2880},
+    "INCIDENT": {"CRITICAL": 120, "HIGH": 480, "MEDIUM": 1440, "LOW": 2880},
+}
+
+
+def _sla_target(item_type: str, policy_key: str) -> int:
+    return SLA_TARGET_MINUTES[item_type].get(policy_key, 1440)
+
+
+async def _ensure_sla_records(db: AsyncSession) -> None:
+    existing = {
+        record.id
+        for record in (await db.scalars(select(SlaRecord))).all()
+    }
+    now = datetime.now(timezone.utc)
+    tickets = (
+        await db.scalars(select(Ticket).options(selectinload(Ticket.events)))
+    ).all()
+    incidents = (await db.scalars(select(Incident))).all()
+    created = False
+
+    for ticket in tickets:
+        record_id = f"TICKET:{ticket.id}"
+        if record_id in existing:
+            continue
+        minutes = _sla_target("TICKET", ticket.priority)
+        started_at = min(
+            (_utc(event.created_at) for event in ticket.events),
+            default=now,
+        )
+        db.add(
+            SlaRecord(
+                id=record_id,
+                item_type="TICKET",
+                item_id=ticket.id,
+                policy_key=ticket.priority,
+                target_minutes=minutes,
+                started_at=started_at,
+                due_at=started_at + timedelta(minutes=minutes),
+            )
+        )
+        created = True
+
+    for incident in incidents:
+        record_id = f"INCIDENT:{incident.id}"
+        if record_id in existing:
+            continue
+        minutes = _sla_target("INCIDENT", incident.severity)
+        started_at = _utc(incident.created_at)
+        db.add(
+            SlaRecord(
+                id=record_id,
+                item_type="INCIDENT",
+                item_id=incident.id,
+                policy_key=incident.severity,
+                target_minutes=minutes,
+                started_at=started_at,
+                due_at=started_at + timedelta(minutes=minutes),
+            )
+        )
+        created = True
+
+    if created:
+        await db.commit()
+
+
+def _sla_json(record: SlaRecord | None, active: bool) -> dict | None:
+    if not record:
+        return None
+    now = datetime.now(timezone.utc)
+    remaining = int((_utc(record.due_at) - now).total_seconds())
+    return {
+        "policy_key": record.policy_key,
+        "target_minutes": record.target_minutes,
+        "active": active,
+        "started_at": _iso(record.started_at),
+        "due_at": _iso(record.due_at),
+        "remaining_seconds": remaining,
+        "is_overdue": active and remaining < 0,
+        "is_escalated": record.escalated_at is not None,
+        "escalated_at": _iso(record.escalated_at),
+    }
+
+
+async def _sla_map(
+    db: AsyncSession, item_type: str, item_ids: list[str]
+) -> dict[str, SlaRecord]:
+    await _ensure_sla_records(db)
+    if not item_ids:
+        return {}
+    records = (
+        await db.scalars(
+            select(SlaRecord).where(
+                SlaRecord.item_type == item_type,
+                SlaRecord.item_id.in_(item_ids),
+            )
+        )
+    ).all()
+    return {record.item_id: record for record in records}
+
+
+async def _evaluate_slas(db: AsyncSession) -> int:
+    await _ensure_sla_records(db)
+    now = datetime.now(timezone.utc)
+    records = (
+        await db.scalars(
+            select(SlaRecord).where(
+                SlaRecord.escalated_at.is_(None),
+                SlaRecord.due_at <= now,
+            )
+        )
+    ).all()
+    if not records:
+        return 0
+    tickets = {ticket.id: ticket for ticket in (await db.scalars(select(Ticket))).all()}
+    incidents = {
+        incident.id: incident for incident in (await db.scalars(select(Incident))).all()
+    }
+    leaders = (
+        await db.scalars(
+            select(User).where(
+                User.is_active.is_(True),
+                User.role.in_(["ADMIN", "GROUP_LEADER"]),
+            )
+        )
+    ).all()
+    escalated = 0
+    for record in records:
+        if record.item_type == "TICKET":
+            item = tickets.get(record.item_id)
+            if not item or item.status == "DONE":
+                continue
+            label = f"ticket #{item.number}"
+            kwargs = {"ticket_id": item.id}
+        else:
+            item = incidents.get(record.item_id)
+            if not item or item.status in {"RESOLVED", "CLOSED"}:
+                continue
+            label = f"incidencia INC-{item.number}"
+            kwargs = {"incident_id": item.id}
+        record.escalated_at = now
+        for leader in leaders:
+            await _notify(
+                db,
+                leader.id,
+                "SLA_ESCALATION",
+                f"SLA vencido: {label} requiere atención.",
+                **kwargs,
+            )
+        escalated += 1
+    await db.commit()
+    return escalated
+
+
+async def _sla_monitor() -> None:
+    while True:
+        try:
+            async with SessionLocal() as db:
+                await _evaluate_slas(db)
+        except Exception:
+            pass
+        await asyncio.sleep(60)
 
 
 def user_json(user: User) -> dict:
@@ -288,7 +461,11 @@ def _ticket_summary(ticket: Ticket) -> dict:
     }
 
 
-def _incident_json(incident: Incident, users: dict[str, User]) -> dict:
+def _incident_json(
+    incident: Incident,
+    users: dict[str, User],
+    sla: SlaRecord | None = None,
+) -> dict:
     comments = sorted(incident.comments, key=lambda item: item.created_at)
     return {
         "id": incident.id,
@@ -302,6 +479,7 @@ def _incident_json(incident: Incident, users: dict[str, User]) -> dict:
         "reporter_id": incident.reporter_id,
         "assignee_id": incident.assignee_id,
         "created_at": _iso(incident.created_at),
+        "sla": _sla_json(sla, incident.status not in {"RESOLVED", "CLOSED"}),
         "comments": [
             {
                 "id": comment.id,
@@ -627,6 +805,7 @@ async def board(project_id: str, user: User = Depends(current_user), db: AsyncSe
 @app.get("/mobile/tickets/{ticket_id}/detail")
 async def ticket_detail(ticket_id: str, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     ticket = await _ticket_or_404(db, ticket_id)
+    sla = (await _sla_map(db, "TICKET", [ticket.id])).get(ticket.id)
     assignee = await db.get(User, ticket.assignee_id) if ticket.assignee_id else None
     creator = await db.get(User, ticket.created_by_id)
     return {
@@ -635,6 +814,7 @@ async def ticket_detail(ticket_id: str, user: User = Depends(current_user), db: 
             "pr_link": ticket.pr_link,
             "time_spent_seconds": 0,
             "blocked_time_seconds": 0,
+            "sla": _sla_json(sla, ticket.status != "DONE"),
         },
         "epic": {"id": ticket.epic.id, "name": ticket.epic.name},
         "application": {"id": ticket.epic.project.id, "name": ticket.epic.project.name},
@@ -666,7 +846,8 @@ async def incidents(user: User = Depends(current_user), db: AsyncSession = Depen
         )
     ).all()
     users = await _users_by_id(db)
-    return [_incident_json(incident, users) for incident in rows]
+    slas = await _sla_map(db, "INCIDENT", [incident.id for incident in rows])
+    return [_incident_json(incident, users, slas.get(incident.id)) for incident in rows]
 
 
 @app.get("/incidents/my-incidents")
@@ -680,13 +861,15 @@ async def my_incidents(user: User = Depends(current_user), db: AsyncSession = De
         )
     ).all()
     users = await _users_by_id(db)
-    return [_incident_json(incident, users) for incident in rows]
+    slas = await _sla_map(db, "INCIDENT", [incident.id for incident in rows])
+    return [_incident_json(incident, users, slas.get(incident.id)) for incident in rows]
 
 
 @app.get("/incidents/{incident_id}")
 async def incident_detail(incident_id: str, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     incident = await _incident_or_404(db, incident_id)
-    return _incident_json(incident, await _users_by_id(db))
+    sla = (await _sla_map(db, "INCIDENT", [incident.id])).get(incident.id)
+    return _incident_json(incident, await _users_by_id(db), sla)
 
 
 @app.post("/incidents/{incident_id}/assign")
@@ -824,6 +1007,15 @@ async def team_report(
     )
 
 
+@app.post("/sla/evaluate")
+async def evaluate_sla(
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_lead(user)
+    return {"escalated_count": await _evaluate_slas(db)}
+
+
 @app.post("/tickets/{ticket_id}/assign")
 async def assign_ticket(ticket_id: str, body: AssignBody, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     _require_lead(user)
@@ -926,6 +1118,19 @@ async def create_ticket(body: CreateTicketBody, user: User = Depends(current_use
     )
     db.add(ticket)
     await db.flush()
+    started_at = datetime.now(timezone.utc)
+    target_minutes = _sla_target("TICKET", ticket.priority)
+    db.add(
+        SlaRecord(
+            id=f"TICKET:{ticket.id}",
+            item_type="TICKET",
+            item_id=ticket.id,
+            policy_key=ticket.priority,
+            target_minutes=target_minutes,
+            started_at=started_at,
+            due_at=started_at + timedelta(minutes=target_minutes),
+        )
+    )
     await _add_ticket_event(db, ticket, user, "CREATED")
     await _notify(db, body.assignee_id, "TICKET_ASSIGNED", f"Se te asignó el ticket #{ticket.number}.", ticket_id=ticket.id)
     await db.commit()

@@ -11,7 +11,7 @@ class S {
 
   String call(String key) => _m[key] ?? _es[key] ?? key;
 
-  static const dictionaryVersion = 3;
+  static const dictionaryVersion = 4;
 
   static S byCode(String code) => switch (code) {
         'en' => const S(_en),
@@ -148,6 +148,11 @@ class S {
     'export_excel': 'Descargar Excel',
     'report_ready': 'Reporte descargado.',
     'report_error': 'No se pudo generar el reporte.',
+    'sla_target': 'Objetivo SLA: {time}',
+    'sla_remaining': 'Restan {time}',
+    'sla_overdue': 'Vencido hace {time}',
+    'sla_finished': 'SLA finalizado',
+    'sla_escalated': 'Escalamiento automático enviado',
     'notifications': 'Notificaciones',
     'mark_all': 'Marcar todas como leídas',
     'no_notifs':
@@ -301,6 +306,11 @@ class S {
     'export_excel': 'Download Excel',
     'report_ready': 'Report downloaded.',
     'report_error': 'The report could not be generated.',
+    'sla_target': 'SLA target: {time}',
+    'sla_remaining': '{time} remaining',
+    'sla_overdue': 'Overdue by {time}',
+    'sla_finished': 'SLA finished',
+    'sla_escalated': 'Automatic escalation sent',
     'notifications': 'Notifications',
     'mark_all': 'Mark all as read',
     'no_notifs':
@@ -457,6 +467,11 @@ class S {
     'export_excel': 'Télécharger Excel',
     'report_ready': 'Rapport téléchargé.',
     'report_error': "Le rapport n'a pas pu être généré.",
+    'sla_target': 'Objectif SLA : {time}',
+    'sla_remaining': 'Il reste {time}',
+    'sla_overdue': 'En retard de {time}',
+    'sla_finished': 'SLA terminé',
+    'sla_escalated': 'Escalade automatique envoyée',
     'notifications': 'Notifications',
     'mark_all': 'Tout marquer comme lu',
     'no_notifs':
