@@ -538,8 +538,12 @@ class ApiRepository implements CoreStreamRepository {
   }
 
   @override
-  Future<List<MemberLoad>> fetchTeamWorkload() async {
-    final r = await _dio.get('/mobile/team/workload');
+  Future<List<MemberLoad>> fetchTeamWorkload(
+      {bool includeInactive = false}) async {
+    final r = await _dio.get(
+      '/mobile/team/workload',
+      queryParameters: {'include_inactive': includeInactive},
+    );
     return [
       for (final m in r.data as List)
         MemberLoad(

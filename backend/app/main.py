@@ -677,9 +677,16 @@ async def comment_incident(incident_id: str, body: CommentBody, user: User = Dep
 
 
 @app.get("/mobile/team/workload")
-async def team_workload(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def team_workload(
+    include_inactive: bool = False,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
     _require_lead(user)
-    users = (await db.scalars(select(User).where(User.is_active.is_(True)).order_by(User.full_name))).all()
+    users_query = select(User).order_by(User.full_name)
+    if not include_inactive:
+        users_query = users_query.where(User.is_active.is_(True))
+    users = (await db.scalars(users_query)).all()
     tickets = (await db.scalars(select(Ticket))).all()
     incidents = (await db.scalars(select(Incident))).all()
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)

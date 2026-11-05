@@ -166,5 +166,10 @@ void main() {
     expect(diego.blocked, greaterThanOrEqualTo(0));
     expect(diego.doneLast7d, greaterThanOrEqualTo(0));
     expect(diego.openIncidents, greaterThanOrEqualTo(0));
+    expect(members.every((member) => member.user.isActive), isTrue);
+
+    final allMembers = await repo.fetchTeamWorkload(includeInactive: true);
+    expect(allMembers.length, members.length + 1);
+    expect(allMembers.any((member) => !member.user.isActive), isTrue);
   });
 }

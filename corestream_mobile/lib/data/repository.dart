@@ -141,7 +141,7 @@ abstract class CoreStreamRepository {
   Future<TicketDetail> fetchTicketDetail(String ticketId);
   Future<List<Incident>> fetchIncidents();
   Future<Incident> fetchIncident(String incidentId);
-  Future<List<MemberLoad>> fetchTeamWorkload();
+  Future<List<MemberLoad>> fetchTeamWorkload({bool includeInactive = false});
   Future<List<AppNotification>> fetchNotifications();
   Future<int> unreadCount();
   Future<List<User>> fetchUsers();

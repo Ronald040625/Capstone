@@ -142,6 +142,7 @@ class S {
     'active_t': 'activos',
     'active_tickets': 'Tickets activos',
     'open_incidents': 'Incidencias abiertas',
+    'include_inactive': 'Incluir integrantes inactivos',
     'notifications': 'Notificaciones',
     'mark_all': 'Marcar todas como leídas',
     'no_notifs':
@@ -289,6 +290,7 @@ class S {
     'active_t': 'active',
     'active_tickets': 'Active tickets',
     'open_incidents': 'Open incidents',
+    'include_inactive': 'Include inactive members',
     'notifications': 'Notifications',
     'mark_all': 'Mark all as read',
     'no_notifs':
@@ -439,6 +441,7 @@ class S {
     'active_t': 'actifs',
     'active_tickets': 'Tickets actifs',
     'open_incidents': 'Incidents ouverts',
+    'include_inactive': 'Inclure les membres inactifs',
     'notifications': 'Notifications',
     'mark_all': 'Tout marquer comme lu',
     'no_notifs':

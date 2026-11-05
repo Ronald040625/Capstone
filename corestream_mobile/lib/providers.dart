@@ -129,10 +129,15 @@ final incidentProvider =
   return ref.watch(repositoryProvider).fetchIncident(incidentId);
 });
 
+final includeInactiveTeamProvider = StateProvider<bool>((ref) => false);
+
 final teamWorkloadProvider =
     FutureProvider.autoDispose<List<MemberLoad>>((ref) {
   ref.watch(dataRevisionProvider);
-  return ref.watch(repositoryProvider).fetchTeamWorkload();
+  final includeInactive = ref.watch(includeInactiveTeamProvider);
+  return ref
+      .watch(repositoryProvider)
+      .fetchTeamWorkload(includeInactive: includeInactive);
 });
 
 final notificationsProvider =

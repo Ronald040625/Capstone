@@ -15,6 +15,7 @@ class TeamScreen extends ConsumerWidget {
     final c = cs(context);
     final s = ref.watch(stringsProvider);
     final team = ref.watch(teamWorkloadProvider);
+    final includeInactive = ref.watch(includeInactiveTeamProvider);
 
     return AsyncView<List<MemberLoad>>(
       value: team,
@@ -22,10 +23,20 @@ class TeamScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(teamWorkloadProvider.future),
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemCount: members.length,
+          itemCount: members.length + 1,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
-            final m = members[i];
+            if (i == 0) {
+              return SwitchListTile.adaptive(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                title: Text(s('include_inactive')),
+                value: includeInactive,
+                onChanged: (value) => ref
+                    .read(includeInactiveTeamProvider.notifier)
+                    .state = value,
+              );
+            }
+            final m = members[i - 1];
             final roleColor = switch (m.user.role) {
               UserRole.admin => c.acc,
               UserRole.groupLeader => c.indigo,

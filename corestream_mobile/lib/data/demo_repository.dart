@@ -90,6 +90,13 @@ class DemoRepository implements CoreStreamRepository {
           role: UserRole.developer,
           specialty: 'QA · Automatización',
           avatarColor: Color(0xFFF0554E)),
+      User(
+          id: 'u6',
+          fullName: 'Paula Soto',
+          role: UserRole.developer,
+          specialty: 'QA',
+          avatarColor: Color(0xFF31B3C2),
+          isActive: false),
     ];
 
     _projects = const [
@@ -651,10 +658,11 @@ class DemoRepository implements CoreStreamRepository {
       _incident(incidentId);
 
   @override
-  Future<List<MemberLoad>> fetchTeamWorkload() async {
+  Future<List<MemberLoad>> fetchTeamWorkload(
+      {bool includeInactive = false}) async {
     final weekAgo = DateTime.now().subtract(const Duration(days: 7));
     return [
-      for (final u in _users)
+      for (final u in _users.where((user) => user.isActive || includeInactive))
         MemberLoad(
           user: u,
           activeTickets: _tickets

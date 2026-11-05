@@ -56,6 +56,15 @@ async def seed_database(db: AsyncSession) -> None:
             role="DEVELOPER",
             specialty="Frontend",
         ),
+        User(
+            id="u-inactive",
+            full_name="Paula Soto",
+            email="paula@corestream.cl",
+            password_hash=hash_password("CoreStream123!"),
+            role="DEVELOPER",
+            specialty="QA",
+            is_active=False,
+        ),
     ]
     projects = [
         Project(id="p-portal", name="Portal Clientes"),

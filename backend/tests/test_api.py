@@ -81,6 +81,14 @@ def test_database_and_main_flows():
         workload = client.get("/mobile/team/workload", headers=admin_headers)
         assert workload.status_code == 200
         assert len(workload.json()) == 4
+        assert all(member["user"]["is_active"] for member in workload.json())
+        full_workload = client.get(
+            "/mobile/team/workload?include_inactive=true", headers=admin_headers
+        )
+        assert len(full_workload.json()) == 5
+        assert any(
+            member["user"]["is_active"] is False for member in full_workload.json()
+        )
         denied = client.get("/mobile/team/workload", headers=diego_headers)
         assert denied.status_code == 403
 
