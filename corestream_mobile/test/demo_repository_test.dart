@@ -93,6 +93,21 @@ void main() {
     expect(dash.stats['mine'], dash.myTickets.length);
   });
 
+  test('incidencias permite alternar listado general y filtro personal',
+      () async {
+    await repo.login(dev);
+    final incidents = await repo.fetchIncidents();
+    final mine = incidents.where((item) => item.assigneeId == dev.id).toList();
+
+    expect(incidents.length, 5);
+    expect(mine, isNotEmpty);
+    expect(incidents.any((item) => item.assigneeId != dev.id), isTrue);
+
+    final detail = await repo.fetchIncident('i1');
+    final dates = detail.comments.map((comment) => comment.ts).toList();
+    expect(dates, orderedEquals([...dates]..sort()));
+  });
+
   test('el dashboard del líder agrega los tres proyectos', () async {
     await repo.login(admin);
     final dash = await repo.fetchDashboard();

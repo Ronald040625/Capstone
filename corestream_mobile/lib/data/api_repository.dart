@@ -482,10 +482,7 @@ class ApiRepository implements CoreStreamRepository {
 
   @override
   Future<List<Incident>> fetchIncidents() async {
-    final me = _current;
-    final path =
-        (me != null && !me.isLead) ? '/incidents/my-incidents' : '/incidents/';
-    final r = await _dio.get(path);
+    final r = await _dio.get('/incidents/');
     final list = (r.data is Map
         ? r.data['items'] ?? r.data['incidents'] ?? []
         : r.data) as List;

@@ -39,6 +39,18 @@ def test_database_and_main_flows():
         incidents = client.get("/incidents/", headers=admin_headers).json()
         assert any(item["id"] == "i-lang" for item in incidents)
 
+        diego = login(client, "u-diego")
+        diego_headers = headers(diego)
+        general = client.get("/incidents/", headers=diego_headers).json()
+        mine = client.get("/incidents/my-incidents", headers=diego_headers).json()
+        assert len(general) == 3
+        assert [item["id"] for item in mine] == ["i-login"]
+        incident_detail = client.get(
+            "/incidents/i-login", headers=diego_headers
+        ).json()
+        comment_dates = [item["created_at"] for item in incident_detail["comments"]]
+        assert comment_dates == sorted(comment_dates)
+
         assigned = client.post(
             "/incidents/i-lang/assign",
             headers=admin_headers,
@@ -46,8 +58,6 @@ def test_database_and_main_flows():
         )
         assert assigned.status_code == 200
 
-        diego = login(client, "u-diego")
-        diego_headers = headers(diego)
         device = client.post(
             "/devices/",
             headers=diego_headers,

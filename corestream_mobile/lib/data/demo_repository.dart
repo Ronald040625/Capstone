@@ -641,16 +641,7 @@ class DemoRepository implements CoreStreamRepository {
 
   @override
   Future<List<Incident>> fetchIncidents() async {
-    final me = _current!;
-    final list = me.isLead
-        ? _incidents
-        : _incidents
-            .where((i) =>
-                i.assigneeId == me.id ||
-                i.reporterId == me.id ||
-                i.assigneeId == null)
-            .toList();
-    final sorted = [...list]
+    final sorted = [..._incidents]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sorted;
   }
