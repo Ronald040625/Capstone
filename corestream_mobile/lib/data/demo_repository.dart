@@ -862,6 +862,11 @@ class DemoRepository implements CoreStreamRepository {
   @override
   Future<void> takeIncident(String incidentId) async {
     final i = _incident(incidentId);
+    if (i.status != IncidentStatus.open &&
+        i.status != IncidentStatus.reopened) {
+      throw StateError(
+          'La incidencia no se puede iniciar en su estado actual.');
+    }
     i.assigneeId = _current!.id;
     i.status = IncidentStatus.inProgress;
     _emitChange();
@@ -871,6 +876,18 @@ class DemoRepository implements CoreStreamRepository {
   Future<void> assignIncident(String incidentId, String assigneeId) async {
     final i = _incident(incidentId);
     final me = _current!;
+    if (!me.isLead) {
+      throw StateError('No tienes permisos para realizar esta acción.');
+    }
+    if (i.status != IncidentStatus.open &&
+        i.status != IncidentStatus.reopened) {
+      throw StateError(
+          'La incidencia no se puede asignar en su estado actual.');
+    }
+    final assignee = _users.where((user) => user.id == assigneeId).firstOrNull;
+    if (assignee == null || !assignee.isActive) {
+      throw StateError('Usuario no encontrado.');
+    }
     i.assigneeId = assigneeId;
     i.status = IncidentStatus.inProgress;
     if (assigneeId != me.id) {
@@ -884,19 +901,50 @@ class DemoRepository implements CoreStreamRepository {
   @override
   Future<void> setIncidentStatus(
       String incidentId, IncidentStatus status) async {
-    _incident(incidentId).status = status;
+    final incident = _incident(incidentId);
+    final me = _current!;
+    final lead = me.isLead;
+    final mine = incident.assigneeId == me.id;
+    final allowed = switch (status) {
+      IncidentStatus.underReview =>
+        (mine || lead) && incident.status == IncidentStatus.inProgress,
+      IncidentStatus.resolved =>
+        lead && incident.status == IncidentStatus.underReview,
+      IncidentStatus.closed =>
+        lead && incident.status == IncidentStatus.resolved,
+      IncidentStatus.reopened => lead &&
+          (incident.status == IncidentStatus.resolved ||
+              incident.status == IncidentStatus.closed),
+      IncidentStatus.inProgress => incident.status == IncidentStatus.open ||
+          incident.status == IncidentStatus.reopened,
+      IncidentStatus.open => false,
+    };
+    if (!allowed) {
+      throw StateError(
+          'La incidencia no se puede modificar en su estado actual.');
+    }
+    if (status == IncidentStatus.inProgress) {
+      incident.assigneeId = me.id;
+    }
+    incident.status = status;
     _emitChange();
   }
 
   @override
   Future<void> commentIncident(String incidentId, String comment) async {
     final text = comment.trim();
-    if (text.isEmpty) return;
-    _incident(incidentId).comments.add(IncidentComment(
-          userId: _current!.id,
-          text: text,
-          ts: DateTime.now(),
-        ));
+    if (text.isEmpty) {
+      throw ArgumentError('El comentario no puede estar vacío.');
+    }
+    final incident = _incident(incidentId);
+    if (incident.status == IncidentStatus.closed) {
+      throw StateError('No se puede comentar una incidencia cerrada.');
+    }
+    incident.comments.add(IncidentComment(
+      userId: _current!.id,
+      text: text,
+      ts: DateTime.now(),
+    ));
     _emitChange();
   }
 

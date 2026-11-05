@@ -610,7 +610,10 @@ async def incident_detail(incident_id: str, user: User = Depends(current_user), 
 async def assign_incident(incident_id: str, body: AssignBody, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     _require_lead(user)
     incident = await _incident_or_404(db, incident_id)
-    if not await db.get(User, body.assignee_id):
+    if incident.status not in {"OPEN", "REOPENED"}:
+        raise HTTPException(409, "La incidencia no se puede asignar en su estado actual.")
+    assignee = await db.get(User, body.assignee_id)
+    if not assignee or not assignee.is_active:
         raise HTTPException(404, "Usuario no encontrado.")
     incident.assignee_id = body.assignee_id
     incident.status = "IN_PROGRESS"

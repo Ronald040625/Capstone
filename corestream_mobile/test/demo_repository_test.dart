@@ -155,6 +155,22 @@ void main() {
     expect(incident.status, IncidentStatus.underReview);
     expect(
         incident.comments.last.text, 'Se corrigió la persistencia del idioma.');
+
+    expect(
+      () => repo.setIncidentStatus('i2', IncidentStatus.resolved),
+      throwsStateError,
+    );
+
+    await repo.logout();
+    await repo.login(leader);
+    await repo.setIncidentStatus('i2', IncidentStatus.resolved);
+    await repo.setIncidentStatus('i2', IncidentStatus.closed);
+    expect(
+      () => repo.commentIncident('i2', 'Comentario tardío'),
+      throwsStateError,
+    );
+    await repo.setIncidentStatus('i2', IncidentStatus.reopened);
+    expect((await repo.fetchIncident('i2')).status, IncidentStatus.reopened);
   });
 
   test('carga de equipo incluye todos los contadores', () async {

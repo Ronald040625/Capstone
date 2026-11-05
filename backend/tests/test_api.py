@@ -74,8 +74,27 @@ def test_database_and_main_flows():
 
         review = client.post("/incidents/i-lang/review", headers=diego_headers)
         assert review.status_code == 200
+        denied_resolve = client.post(
+            "/incidents/i-lang/resolve", headers=diego_headers
+        )
+        assert denied_resolve.status_code == 403
+        assert client.post(
+            "/incidents/i-lang/resolve", headers=admin_headers
+        ).status_code == 200
+        assert client.post(
+            "/incidents/i-lang/close", headers=admin_headers
+        ).status_code == 200
+        closed_comment = client.post(
+            "/incidents/i-lang/comments",
+            headers=diego_headers,
+            json={"content": "Este comentario no debe guardarse."},
+        )
+        assert closed_comment.status_code == 409
+        assert client.post(
+            "/incidents/i-lang/reopen", headers=admin_headers
+        ).status_code == 200
         detail = client.get("/incidents/i-lang", headers=diego_headers).json()
-        assert detail["status"] == "UNDER_REVIEW"
+        assert detail["status"] == "REOPENED"
         assert detail["comments"][-1]["content"] == "Comentario persistente de prueba."
 
         workload = client.get("/mobile/team/workload", headers=admin_headers)
