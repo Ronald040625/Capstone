@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme.dart';
+import 'core/i18n.dart';
 import 'providers.dart';
 import 'ui/home_shell.dart';
 import 'ui/login_screen.dart';
@@ -33,7 +34,7 @@ class CoreStreamApp extends ConsumerWidget {
       darkTheme: buildTheme(Brightness.dark),
       themeMode: dark ? ThemeMode.dark : ThemeMode.light,
       locale: Locale(lang),
-      supportedLocales: const [Locale('es'), Locale('en')],
+      supportedLocales: S.supported.map(Locale.new).toList(),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       builder: (context, child) => ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,

@@ -70,12 +70,18 @@ final darkModeProvider = StateNotifierProvider<ThemeDarkNotifier, bool>(
     (ref) => ThemeDarkNotifier(ref.watch(prefsProvider)));
 
 class LangNotifier extends StateNotifier<String> {
-  LangNotifier(this._prefs) : super(_prefs.getString('lang') ?? 'es');
+  LangNotifier(this._prefs) : super(_initialLanguage(_prefs));
   final SharedPreferences _prefs;
 
   void set(String lang) {
+    if (!S.supported.contains(lang)) return;
     state = lang;
     _prefs.setString('lang', lang);
+  }
+
+  static String _initialLanguage(SharedPreferences prefs) {
+    final saved = prefs.getString('lang');
+    return S.supported.contains(saved) ? saved! : 'es';
   }
 }
 

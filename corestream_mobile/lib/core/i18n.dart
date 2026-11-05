@@ -14,10 +14,10 @@ class S {
   static const dictionaryVersion = 2;
 
   static S byCode(String code) => switch (code) {
-    'en' => const S(_en),
-    'fr' => const S(_fr),
-    _ => const S(_es),
-  };
+        'en' => const S(_en),
+        'fr' => const S(_fr),
+        _ => const S(_es),
+      };
 
   static const supported = ['es', 'en', 'fr'];
 
@@ -32,7 +32,8 @@ class S {
 
   static const Map<String, String> _es = {
     'app_name': 'CoreStream',
-    'login_sub': 'Selecciona un usuario demo para entrar. La app adapta la navegación y los permisos según el rol, igual que la versión web.',
+    'login_sub':
+        'Selecciona un usuario demo para entrar. La app adapta la navegación y los permisos según el rol, igual que la versión web.',
     'demo_note': 'Datos de demostración — ningún cambio se guarda.',
     'api_mode': 'Conectado al servidor',
     'role_ADMIN': 'Administrador',
@@ -95,7 +96,8 @@ class S {
     'activity': 'Registro de actividad',
     'assign': 'Asignar',
     'reassign': 'Reasignar',
-    'assign_sub': 'Elige a quién asignar esta tarea. Recibirá una notificación al instante.',
+    'assign_sub':
+        'Elige a quién asignar esta tarea. Recibirá una notificación al instante.',
     'start': 'Comenzar a trabajar',
     'complete': 'Completar',
     'raise_q': 'Plantear pregunta',
@@ -104,10 +106,12 @@ class S {
     'complete_sub': 'Pega el enlace del Pull Request para cerrar el ticket.',
     'pr_link': 'Enlace de PR',
     'pr_invalid': 'Enlace inválido. Se admite GitHub, GitLab o Bitbucket.',
-    'q_sub': 'El ticket quedará bloqueado y se pausará el temporizador hasta que el líder responda.',
+    'q_sub':
+        'El ticket quedará bloqueado y se pausará el temporizador hasta que el líder responda.',
     'q_ph': '¿Qué impide avanzar? (mín. 10 caracteres)',
     'q_short': 'Escribe al menos 10 caracteres.',
-    'rd_sub': 'El ticket pasará a otra persona del equipo con una razón visible en el historial.',
+    'rd_sub':
+        'El ticket pasará a otra persona del equipo con una razón visible en el historial.',
     'rd_reason': 'Razón (mín. 10 caracteres)',
     'rs_sub':
         'Describe cómo se resolvió el bloqueo para reanudar el temporizador.',
@@ -140,13 +144,17 @@ class S {
     'open_incidents': 'Incidencias abiertas',
     'notifications': 'Notificaciones',
     'mark_all': 'Marcar todas como leídas',
-    'no_notifs': 'Sin notificaciones nuevas.\nCuando ocurra algo en tus proyectos, aparecerá aquí.',
+    'no_notifs':
+        'Sin notificaciones nuevas.\nCuando ocurra algo en tus proyectos, aparecerá aquí.',
     'no_tickets': 'No hay tickets con este filtro.',
     'settings': 'Ajustes',
     'theme': 'Tema',
     'dark': 'Oscuro',
     'light': 'Claro',
     'language': 'Idioma',
+    'language_es': 'Español',
+    'language_en': 'Inglés',
+    'language_fr': 'Francés',
     'logout': 'Cerrar sesión',
     'push_demo': 'Notificaciones simuladas',
     'push_demo_sub': 'Genera eventos del equipo cada ~20 s',
@@ -172,7 +180,8 @@ class S {
 
   static const Map<String, String> _en = {
     'app_name': 'CoreStream',
-    'login_sub': 'Pick a demo user to sign in. The app adapts navigation and permissions to the role, just like the web version.',
+    'login_sub':
+        'Pick a demo user to sign in. The app adapts navigation and permissions to the role, just like the web version.',
     'demo_note': 'Demo data — nothing is saved.',
     'api_mode': 'Connected to server',
     'role_ADMIN': 'Administrator',
@@ -245,10 +254,12 @@ class S {
     'complete_sub': 'Paste the Pull Request link to close the ticket.',
     'pr_link': 'PR link',
     'pr_invalid': 'Invalid link. GitHub, GitLab or Bitbucket supported.',
-    'q_sub': 'The ticket will be blocked and the timer paused until the leader answers.',
+    'q_sub':
+        'The ticket will be blocked and the timer paused until the leader answers.',
     'q_ph': "What's blocking you? (min. 10 characters)",
     'q_short': 'Write at least 10 characters.',
-    'rd_sub': 'The ticket moves to another teammate with a reason visible in the history.',
+    'rd_sub':
+        'The ticket moves to another teammate with a reason visible in the history.',
     'rd_reason': 'Reason (min. 10 characters)',
     'rs_sub': 'Describe how the blocker was resolved to resume the timer.',
     'send': 'Send',
@@ -280,13 +291,17 @@ class S {
     'open_incidents': 'Open incidents',
     'notifications': 'Notifications',
     'mark_all': 'Mark all as read',
-    'no_notifs': 'No new notifications.\nWhen something happens in your projects, it shows up here.',
+    'no_notifs':
+        'No new notifications.\nWhen something happens in your projects, it shows up here.',
     'no_tickets': 'No tickets match this filter.',
     'settings': 'Settings',
     'theme': 'Theme',
     'dark': 'Dark',
     'light': 'Light',
     'language': 'Language',
+    'language_es': 'Spanish',
+    'language_en': 'English',
+    'language_fr': 'French',
     'logout': 'Sign out',
     'push_demo': 'Simulated notifications',
     'push_demo_sub': 'Generates team events every ~20 s',
@@ -312,7 +327,8 @@ class S {
 
   static const Map<String, String> _fr = {
     'app_name': 'CoreStream',
-    'login_sub': "Sélectionnez un utilisateur de démonstration. L'application adapte la navigation et les autorisations selon le rôle, comme la version web.",
+    'login_sub':
+        "Sélectionnez un utilisateur de démonstration. L'application adapte la navigation et les autorisations selon le rôle, comme la version web.",
     'demo_note':
         "Données de démonstration — aucune modification n'est enregistrée.",
     'api_mode': 'Connecté au serveur',
@@ -376,7 +392,8 @@ class S {
     'activity': "Journal d'activité",
     'assign': 'Assigner',
     'reassign': 'Réassigner',
-    'assign_sub': 'Choisissez la personne responsable. Elle recevra immédiatement une notification.',
+    'assign_sub':
+        'Choisissez la personne responsable. Elle recevra immédiatement une notification.',
     'start': 'Commencer le travail',
     'complete': 'Terminer',
     'raise_q': 'Poser une question',
@@ -385,10 +402,12 @@ class S {
     'complete_sub': 'Collez le lien de la Pull Request pour fermer le ticket.',
     'pr_link': 'Lien de la PR',
     'pr_invalid': 'Lien non valide. GitHub, GitLab et Bitbucket sont acceptés.',
-    'q_sub': "Le ticket sera bloqué et le minuteur suspendu jusqu'à la réponse du responsable.",
+    'q_sub':
+        "Le ticket sera bloqué et le minuteur suspendu jusqu'à la réponse du responsable.",
     'q_ph': "Qu'est-ce qui bloque l'avancement ? (10 caractères minimum)",
     'q_short': 'Saisissez au moins 10 caractères.',
-    'rd_sub': "Le ticket sera transféré à un autre membre de l'équipe avec un motif visible dans l'historique.",
+    'rd_sub':
+        "Le ticket sera transféré à un autre membre de l'équipe avec un motif visible dans l'historique.",
     'rd_reason': 'Motif (10 caractères minimum)',
     'rs_sub':
         'Décrivez comment le blocage a été résolu pour reprendre le minuteur.',
@@ -422,13 +441,17 @@ class S {
     'open_incidents': 'Incidents ouverts',
     'notifications': 'Notifications',
     'mark_all': 'Tout marquer comme lu',
-    'no_notifs': "Aucune nouvelle notification.\nLes événements de vos projets s'afficheront ici.",
+    'no_notifs':
+        "Aucune nouvelle notification.\nLes événements de vos projets s'afficheront ici.",
     'no_tickets': 'Aucun ticket ne correspond à ce filtre.',
     'settings': 'Paramètres',
     'theme': 'Thème',
     'dark': 'Sombre',
     'light': 'Clair',
     'language': 'Langue',
+    'language_es': 'Espagnol',
+    'language_en': 'Anglais',
+    'language_fr': 'Français',
     'logout': 'Se déconnecter',
     'push_demo': 'Notifications simulées',
     'push_demo_sub': "Génère des événements d'équipe toutes les 20 s environ",

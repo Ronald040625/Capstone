@@ -73,9 +73,10 @@ Future<void> showSettingsSheet(BuildContext context, WidgetRef ref) {
           _SettingRow(
             label: s('language'),
             child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'es', label: Text('Español')),
-                ButtonSegment(value: 'en', label: Text('English')),
+              segments: [
+                ButtonSegment(value: 'es', label: Text(s('language_es'))),
+                ButtonSegment(value: 'en', label: Text(s('language_en'))),
+                ButtonSegment(value: 'fr', label: Text(s('language_fr'))),
               ],
               selected: {lang},
               onSelectionChanged: (v) =>

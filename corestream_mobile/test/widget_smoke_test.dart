@@ -9,18 +9,23 @@ import 'package:corestream_mobile/providers.dart';
 import 'package:corestream_mobile/data/demo_repository.dart';
 
 void main() {
-  test('el idioma se carga y persiste', () async {
-    SharedPreferences.setMockInitialValues({'lang': 'en'});
+  test('el idioma se carga, valida y persiste', () async {
+    SharedPreferences.setMockInitialValues({'lang': 'fr'});
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(overrides: [
       prefsProvider.overrideWithValue(prefs),
     ]);
     addTearDown(container.dispose);
 
-    expect(container.read(langProvider), 'en');
-    container.read(langProvider.notifier).set('es');
+    expect(container.read(langProvider), 'fr');
+    expect(container.read(stringsProvider)('logout'), 'Se déconnecter');
+    container.read(langProvider.notifier).set('en');
     await Future<void>.delayed(Duration.zero);
-    expect(prefs.getString('lang'), 'es');
+    expect(prefs.getString('lang'), 'en');
+
+    container.read(langProvider.notifier).set('xx');
+    expect(container.read(langProvider), 'en');
+    expect(prefs.getString('lang'), 'en');
   });
 
   testWidgets('login como Admin muestra el dashboard y permite cerrar sesión',
