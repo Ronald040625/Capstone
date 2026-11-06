@@ -169,7 +169,11 @@ async def seed_database(db: AsyncSession) -> None:
         ),
     ]
 
-    db.add_all(users + projects + epics + tickets + incidents)
+    db.add_all(users + projects)
+    await db.flush()
+    db.add_all(epics)
+    await db.flush()
+    db.add_all(tickets + incidents)
     await db.flush()
     db.add_all(
         [

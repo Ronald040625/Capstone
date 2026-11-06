@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 
 from app.main import app
+from app.database import _database_url
 
 
 def login(client: TestClient, user_id: str) -> dict:
@@ -22,6 +23,19 @@ def login(client: TestClient, user_id: str) -> dict:
 
 def headers(session: dict) -> dict:
     return {"Authorization": f"Bearer {session['access_token']}"}
+
+
+def test_neon_database_url_is_asyncpg_compatible(monkeypatch):
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql://user:pass@example.neon.tech/neondb"
+        "?sslmode=require&channel_binding=require",
+    )
+    url = _database_url()
+    assert url.startswith("postgresql+asyncpg://")
+    assert "ssl=require" in url
+    assert "sslmode" not in url
+    assert "channel_binding" not in url
 
 
 def test_database_and_main_flows():

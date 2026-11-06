@@ -14,10 +14,14 @@ library;
 class AppConfig {
   AppConfig._();
 
-  /// URL base del backend. Vacía => modo demo.
-  static const String apiBaseUrl = String.fromEnvironment('CS_API_URL');
+  /// URL base del backend. `same-origin` usa el mismo dominio del navegador.
+  static const String _configuredApiUrl = String.fromEnvironment('CS_API_URL');
 
-  static bool get isDemo => apiBaseUrl.isEmpty;
+  static String get apiBaseUrl => _configuredApiUrl == 'same-origin'
+      ? '${Uri.base.origin}/api'
+      : _configuredApiUrl;
+
+  static bool get isDemo => _configuredApiUrl.isEmpty;
 
   /// Intervalo de la simulación de eventos del equipo en modo demo.
   static const Duration demoEventInterval = Duration(seconds: 20);

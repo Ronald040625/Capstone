@@ -2,6 +2,24 @@
 
 Proyecto Capstone del Equipo 7 con aplicación Flutter, API FastAPI y base de datos persistente.
 
+## Sitio público
+
+El proyecto puede publicarse como una sola aplicación en Vercel:
+
+- Flutter Web se sirve desde `public`.
+- FastAPI atiende las rutas de datos bajo `/api` en el mismo dominio.
+- Neon PostgreSQL conserva la información compartida entre dispositivos.
+
+La compilación web para producción se genera con:
+
+```powershell
+flutter build web --release --dart-define=CS_API_URL=same-origin
+```
+
+Después se copia el contenido de `corestream_mobile\build\web` a `public` y se
+despliega la raíz del repositorio. Al iniciar la API por primera vez se crean
+las tablas y los datos de demostración.
+
 ## Primera instalación en Windows
 
 Necesitas Git, Python 3, Flutter estable y Microsoft Edge.

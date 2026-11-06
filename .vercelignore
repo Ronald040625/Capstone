@@ -1,0 +1,11 @@
+.git
+.pytest_cache
+Fase 1
+Fase 2
+corestream_mobile
+backend/.packages
+backend/.pytest_cache
+backend/tests
+backend/*.db
+backend/.env*
+INICIAR_MVP.ps1
