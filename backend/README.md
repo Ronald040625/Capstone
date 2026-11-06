@@ -16,6 +16,7 @@ La API queda disponible en `http://localhost:8000` y la documentación en
 
 La primera ejecución crea `corestream.db` y carga datos de demostración. El
 archivo se conserva al cerrar el servidor, por lo que los cambios no se pierden.
+Las tablas se crean automáticamente; no hay que ejecutar scripts SQL.
 
 ## PostgreSQL
 
@@ -25,6 +26,8 @@ Para usar PostgreSQL, define `DATABASE_URL` antes de iniciar:
 $env:DATABASE_URL="postgresql://usuario:clave@servidor:5432/corestream"
 powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```
+
+El iniciador muestra `SQLite local` o `PostgreSQL` sin imprimir credenciales.
 
 ## Usuarios iniciales
 

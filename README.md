@@ -63,6 +63,20 @@ CoreStream crea automáticamente `backend\corestream.db`. Cada computador mantie
 
 También se puede usar PostgreSQL configurando la variable `DATABASE_URL`.
 
+No es necesario crear tablas manualmente. Al iniciar el backend se crean las tablas faltantes y se cargan los usuarios y datos iniciales cuando la base está vacía.
+
+Para comprobar la conexión:
+
+```text
+http://localhost:8000/health
+```
+
+La respuesta esperada es:
+
+```json
+{"status":"ok","database":"connected"}
+```
+
 ## Componentes
 
 - `corestream_mobile`: aplicación Flutter.
